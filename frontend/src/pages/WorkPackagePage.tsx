@@ -2,12 +2,14 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { getProject, type Project } from '../api/projects'
 import {
+  bulkDeleteWorkPackages,
   createWorkPackage,
   deleteWorkPackage,
   downloadWorkPackageTemplate,
   importWorkPackages,
   listControlAccounts,
   listWorkPackages,
+  previewWorkPackageImport,
   type CBSControlAccount,
   type WorkPackage,
 } from '../api/cbs'
@@ -38,6 +40,8 @@ export default function WorkPackagePage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   function refresh() {
     setLoading(true)
@@ -50,6 +54,7 @@ export default function WorkPackagePage() {
       })
       .catch(() => setError('Could not load Work Package data. Is the backend running?'))
       .finally(() => setLoading(false))
+    setSelectedIds(new Set())
   }
 
   useEffect(() => {
@@ -105,6 +110,34 @@ export default function WorkPackagePage() {
     }
   }
 
+  async function handleBulkDelete() {
+    const count = selectedIds.size
+    if (count === 0) return
+    if (!window.confirm(`Delete ${count} selected Work Package(s)? This cannot be undone.`)) return
+    setBulkDeleting(true)
+    try {
+      await bulkDeleteWorkPackages(Array.from(selectedIds))
+      refresh()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to delete selected work packages')
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => (prev.size === packages.length ? new Set() : new Set(packages.map((p) => p.id))))
+  }
+
   return (
     <div>
       <CBSTabs projectId={projectIdNum} project={project} />
@@ -116,18 +149,30 @@ export default function WorkPackagePage() {
             Every Work Package is linked to a CBS Control Account and contributes to its budget (BAC).
           </p>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          disabled={accounts.length === 0}
-          className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-50"
-          title={accounts.length === 0 ? 'Create a CBS Control Account first' : undefined}
-        >
-          {showForm ? 'Cancel' : 'New Work Package'}
-        </button>
+        <div className="flex gap-3">
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="rounded border border-red-600 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              {bulkDeleting ? 'Deleting...' : `Delete selected (${selectedIds.size})`}
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            disabled={accounts.length === 0}
+            className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:opacity-50"
+            title={accounts.length === 0 ? 'Create a CBS Control Account first' : undefined}
+          >
+            {showForm ? 'Cancel' : 'New Work Package'}
+          </button>
+        </div>
       </div>
 
       <ExcelImportExport
         onDownloadTemplate={downloadWorkPackageTemplate}
+        onPreview={(file) => previewWorkPackageImport(projectIdNum, file)}
         onImport={(file) => importWorkPackages(projectIdNum, file)}
         onImported={refresh}
       />
@@ -245,6 +290,14 @@ export default function WorkPackagePage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
+              <th className="w-10 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={packages.length > 0 && selectedIds.size === packages.length}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all"
+                />
+              </th>
               <th className="px-4 py-3 font-medium">CBS CA</th>
               <th className="px-4 py-3 font-medium">CBS WP</th>
               <th className="px-4 py-3 font-medium">WP Name</th>
@@ -259,21 +312,21 @@ export default function WorkPackagePage() {
           <tbody className="divide-y divide-gray-100">
             {loading && (
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={10} className="px-4 py-6 text-center text-gray-500">
                   Loading...
                 </td>
               </tr>
             )}
             {!loading && error && (
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-red-600">
+                <td colSpan={10} className="px-4 py-6 text-center text-red-600">
                   {error}
                 </td>
               </tr>
             )}
             {!loading && !error && packages.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={10} className="px-4 py-6 text-center text-gray-500">
                   No Work Packages yet. Create one to get started.
                 </td>
               </tr>
@@ -282,6 +335,14 @@ export default function WorkPackagePage() {
               !error &&
               packages.map((wp) => (
                 <tr key={wp.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(wp.id)}
+                      onChange={() => toggleSelect(wp.id)}
+                      aria-label={`Select ${wp.code}`}
+                    />
+                  </td>
                   <td className="px-4 py-3 text-gray-500">{wp.ca_code}</td>
                   <td className="px-4 py-3 font-medium text-gray-900">{wp.code}</td>
                   <td className="px-4 py-3">{wp.name}</td>

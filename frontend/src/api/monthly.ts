@@ -1,5 +1,5 @@
 import { apiFetch, downloadFile, uploadFile } from './client'
-import type { ImportResult } from './cbs'
+import type { ImportPreview, ImportResult } from './cbs'
 
 export interface Period {
   id: number
@@ -69,6 +69,13 @@ export function importPeriodProgress(periodId: number, file: File) {
   formData.append('period', String(periodId))
   formData.append('file', file)
   return uploadFile<ImportResult>('/api/monthly/progress/import/', formData)
+}
+
+export function previewPeriodProgressImport(periodId: number, file: File) {
+  const formData = new FormData()
+  formData.append('period', String(periodId))
+  formData.append('file', file)
+  return uploadFile<ImportPreview>('/api/monthly/progress/import/preview/', formData)
 }
 
 export interface EVMMetric {

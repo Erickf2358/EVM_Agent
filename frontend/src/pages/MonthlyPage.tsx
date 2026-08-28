@@ -11,6 +11,7 @@ import {
   listEVMMetrics,
   listPeriodProgress,
   listPeriods,
+  previewPeriodProgressImport,
   type EVMMetric,
   type Period,
   type PeriodProgress,
@@ -278,6 +279,7 @@ export default function MonthlyPage() {
         <>
           <ExcelImportExport
             onDownloadTemplate={() => downloadPeriodProgressTemplate(projectIdNum)}
+            onPreview={(file) => previewPeriodProgressImport(periodId, file)}
             onImport={(file) => importPeriodProgress(periodId, file)}
             onImported={refreshProgress}
           />

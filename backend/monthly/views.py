@@ -111,26 +111,33 @@ class PeriodProgressViewSet(viewsets.ModelViewSet):
 
         return build_prefilled_template('Period_Progress', PERIOD_PROGRESS_HEADERS, rows)
 
-    @action(detail=False, methods=['post'], url_path='import')
-    def import_excel(self, request):
+    def _load_period_and_rows(self, request):
         period_id = request.data.get('period')
         uploaded_file = request.FILES.get('file')
         if not period_id or not uploaded_file:
-            return Response({'detail': 'period and file are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return None, None, Response({'detail': 'period and file are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             period = Period.objects.get(pk=period_id)
         except Period.DoesNotExist:
-            return Response({'detail': 'Period not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return None, None, Response({'detail': 'Period not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             rows = list(read_rows(uploaded_file, PERIOD_PROGRESS_HEADERS))
         except ValueError as exc:
-            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return None, None, Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        created, updated = 0, 0
-        errors = []
+        return period, rows, None
+
+    def _process_rows(self, period, rows, commit):
+        existing_wp_ids = set(
+            PeriodProgress.objects.filter(period=period).values_list('work_package_id', flat=True)
+        )
         seen = {}
+        created, updated = 0, 0
+        created_codes, updated_codes = [], []
+        errors = []
+
         for i, row in enumerate(rows, start=2):
             ca_code = str(row['CBS CA']).strip() if row['CBS CA'] is not None else ''
             wp_code = str(row['CBS WP']).strip() if row['CBS WP'] is not None else ''
@@ -158,23 +165,54 @@ class PeriodProgressViewSet(viewsets.ModelViewSet):
                 errors.append(f'Row {i}: Work Package "{wp_code}" under CBS CA "{ca_code}" is ambiguous.')
                 continue
 
-            obj, was_created = PeriodProgress.objects.update_or_create(
-                period=period,
-                work_package=work_package,
-                defaults={
-                    'start': parse_date(row['Actual Start']),
-                    'finish': parse_date(row['Actual Finish']),
-                    'actual_qty': parse_decimal(row['Actual Qty']),
-                    'ac': parse_decimal(row['AC']),
-                    'etc': parse_decimal(row['ETC']),
-                },
-            )
-            created += int(was_created)
-            updated += int(not was_created)
+            is_new = work_package.id not in existing_wp_ids
 
-        compute_evm_for_period(period)
+            if commit:
+                obj, was_created = PeriodProgress.objects.update_or_create(
+                    period=period,
+                    work_package=work_package,
+                    defaults={
+                        'start': parse_date(row['Actual Start']),
+                        'finish': parse_date(row['Actual Finish']),
+                        'actual_qty': parse_decimal(row['Actual Qty']),
+                        'ac': parse_decimal(row['AC']),
+                        'etc': parse_decimal(row['ETC']),
+                    },
+                )
+                is_new = was_created
 
-        return Response({'created': created, 'updated': updated, 'total': len(rows), 'errors': errors})
+            if is_new:
+                created += 1
+                created_codes.append(wp_code)
+            else:
+                updated += 1
+                updated_codes.append(wp_code)
+
+        if commit:
+            compute_evm_for_period(period)
+
+        return {
+            'created': created,
+            'updated': updated,
+            'total': len(rows),
+            'errors': errors,
+            'created_codes': created_codes,
+            'updated_codes': updated_codes,
+        }
+
+    @action(detail=False, methods=['post'], url_path='import')
+    def import_excel(self, request):
+        period, rows, error = self._load_period_and_rows(request)
+        if error:
+            return error
+        return Response(self._process_rows(period, rows, commit=True))
+
+    @action(detail=False, methods=['post'], url_path='import/preview')
+    def import_preview(self, request):
+        period, rows, error = self._load_period_and_rows(request)
+        if error:
+            return error
+        return Response(self._process_rows(period, rows, commit=False))
 
 
 class EVMMetricViewSet(viewsets.ReadOnlyModelViewSet):

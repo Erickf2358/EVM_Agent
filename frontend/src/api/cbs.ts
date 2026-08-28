@@ -7,6 +7,15 @@ export interface ImportResult {
   errors?: string[]
 }
 
+export interface ImportPreview extends ImportResult {
+  created_codes: string[]
+  updated_codes: string[]
+}
+
+export interface BulkDeleteResult {
+  deleted: number
+}
+
 export interface CBSProjectGroup {
   id: number
   project: number
@@ -52,6 +61,24 @@ export function createProjectGroup(data: CBSProjectGroupInput) {
   })
 }
 
+export function deleteProjectGroup(id: number) {
+  return apiFetch<void>(`/api/cbs/project-groups/${id}/`, { method: 'DELETE' })
+}
+
+export function bulkDeleteProjectGroups(ids: number[]) {
+  return apiFetch<BulkDeleteResult>('/api/cbs/project-groups/bulk-delete/', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  })
+}
+
+export function previewProjectGroupImport(projectId: number, file: File) {
+  const formData = new FormData()
+  formData.append('project', String(projectId))
+  formData.append('file', file)
+  return uploadFile<ImportPreview>('/api/cbs/project-groups/import/preview/', formData)
+}
+
 export function listControlAccounts(projectId: number) {
   return apiFetch<CBSControlAccount[]>(`/api/cbs/control-accounts/?project=${projectId}`)
 }
@@ -60,6 +87,17 @@ export function createControlAccount(data: CBSControlAccountInput) {
   return apiFetch<CBSControlAccount>('/api/cbs/control-accounts/', {
     method: 'POST',
     body: JSON.stringify(data),
+  })
+}
+
+export function deleteControlAccount(id: number) {
+  return apiFetch<void>(`/api/cbs/control-accounts/${id}/`, { method: 'DELETE' })
+}
+
+export function bulkDeleteControlAccounts(ids: number[]) {
+  return apiFetch<BulkDeleteResult>('/api/cbs/control-accounts/bulk-delete/', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
   })
 }
 
@@ -117,6 +155,13 @@ export function deleteWorkPackage(id: number) {
   return apiFetch<void>(`/api/cbs/work-packages/${id}/`, { method: 'DELETE' })
 }
 
+export function bulkDeleteWorkPackages(ids: number[]) {
+  return apiFetch<BulkDeleteResult>('/api/cbs/work-packages/bulk-delete/', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  })
+}
+
 export function downloadWorkPackageTemplate() {
   return downloadFile('/api/cbs/work-packages/template/', 'Work_Packages_template.xlsx')
 }
@@ -126,6 +171,13 @@ export function importWorkPackages(projectId: number, file: File) {
   formData.append('project', String(projectId))
   formData.append('file', file)
   return uploadFile<ImportResult>('/api/cbs/work-packages/import/', formData)
+}
+
+export function previewWorkPackageImport(projectId: number, file: File) {
+  const formData = new FormData()
+  formData.append('project', String(projectId))
+  formData.append('file', file)
+  return uploadFile<ImportPreview>('/api/cbs/work-packages/import/preview/', formData)
 }
 
 export interface MonthlyPV {
@@ -166,4 +218,11 @@ export function importControlAccounts(projectId: number, file: File) {
   formData.append('project', String(projectId))
   formData.append('file', file)
   return uploadFile<ImportResult>('/api/cbs/control-accounts/import/', formData)
+}
+
+export function previewControlAccountImport(projectId: number, file: File) {
+  const formData = new FormData()
+  formData.append('project', String(projectId))
+  formData.append('file', file)
+  return uploadFile<ImportPreview>('/api/cbs/control-accounts/import/preview/', formData)
 }

@@ -1,10 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { getProject, type Project } from '../api/projects'
 import {
+  bulkDeleteProjectGroups,
   createProjectGroup,
+  deleteProjectGroup,
   downloadProjectGroupTemplate,
   importProjectGroups,
   listProjectGroups,
+  previewProjectGroupImport,
   type CBSProjectGroup,
 } from '../api/cbs'
 import { ApiError } from '../api/client'
@@ -27,6 +30,9 @@ export default function ProjectDetailPage() {
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   function refresh() {
     setLoading(true)
@@ -37,6 +43,7 @@ export default function ProjectDetailPage() {
       })
       .catch(() => setError('Could not load CBS data. Is the backend running?'))
       .finally(() => setLoading(false))
+    setSelectedIds(new Set())
   }
 
   useEffect(() => {
@@ -61,6 +68,57 @@ export default function ProjectDetailPage() {
     }
   }
 
+  async function handleDelete(g: CBSProjectGroup) {
+    if (
+      !window.confirm(
+        `Delete CBS Project Group "${g.code} - ${g.description}"? This also deletes its Control Accounts and Work Packages. This cannot be undone.`
+      )
+    )
+      return
+    setDeletingId(g.id)
+    try {
+      await deleteProjectGroup(g.id)
+      refresh()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to delete project group')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  async function handleBulkDelete() {
+    const count = selectedIds.size
+    if (count === 0) return
+    if (
+      !window.confirm(
+        `Delete ${count} selected CBS Project Group(s)? This also deletes their Control Accounts and Work Packages. This cannot be undone.`
+      )
+    )
+      return
+    setBulkDeleting(true)
+    try {
+      await bulkDeleteProjectGroups(Array.from(selectedIds))
+      refresh()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to delete selected project groups')
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => (prev.size === groups.length ? new Set() : new Set(groups.map((g) => g.id))))
+  }
+
   return (
     <div>
       <CBSTabs projectId={projectIdNum} project={project} />
@@ -72,16 +130,28 @@ export default function ProjectDetailPage() {
             Project Groups roll up budget from their Control Accounts.
           </p>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
-        >
-          {showForm ? 'Cancel' : 'New Project Group'}
-        </button>
+        <div className="flex gap-3">
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="rounded border border-red-600 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              {bulkDeleting ? 'Deleting...' : `Delete selected (${selectedIds.size})`}
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="rounded bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+          >
+            {showForm ? 'Cancel' : 'New Project Group'}
+          </button>
+        </div>
       </div>
 
       <ExcelImportExport
         onDownloadTemplate={downloadProjectGroupTemplate}
+        onPreview={(file) => previewProjectGroupImport(projectIdNum, file)}
         onImport={(file) => importProjectGroups(projectIdNum, file)}
         onImported={refresh}
       />
@@ -130,29 +200,38 @@ export default function ProjectDetailPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
+              <th className="w-10 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={groups.length > 0 && selectedIds.size === groups.length}
+                  onChange={toggleSelectAll}
+                  aria-label="Select all"
+                />
+              </th>
               <th className="px-4 py-3 font-medium">CBS PG</th>
               <th className="px-4 py-3 font-medium">Description</th>
               <th className="px-4 py-3 font-medium text-right">Budget (BAC)</th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
                   Loading...
                 </td>
               </tr>
             )}
             {!loading && error && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-red-600">
+                <td colSpan={5} className="px-4 py-6 text-center text-red-600">
                   {error}
                 </td>
               </tr>
             )}
             {!loading && !error && groups.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
                   No CBS Project Groups yet. Create one to get started.
                 </td>
               </tr>
@@ -161,9 +240,27 @@ export default function ProjectDetailPage() {
               !error &&
               groups.map((g) => (
                 <tr key={g.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(g.id)}
+                      onChange={() => toggleSelect(g.id)}
+                      aria-label={`Select ${g.code}`}
+                    />
+                  </td>
                   <td className="px-4 py-3 font-medium text-gray-900">{g.code}</td>
                   <td className="px-4 py-3">{g.description}</td>
                   <td className="px-4 py-3 text-right">{formatCurrency(g.budget)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => handleDelete(g)}
+                      disabled={deletingId === g.id}
+                      className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                      title="Delete project group"
+                    >
+                      {deletingId === g.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </td>
                 </tr>
               ))}
           </tbody>
