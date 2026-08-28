@@ -175,7 +175,7 @@ export default function MonthlyPage() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" />
               <YAxis tickFormatter={(v) => formatCurrency(v)} width={100} />
-              <Tooltip formatter={(value: number) => formatCurrency(value)} />
+              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
               <Legend />
               <Bar dataKey="pv" name="PV" fill="#2563eb" />
               <Bar dataKey="ev" name="EV" fill="#16a34a" />
