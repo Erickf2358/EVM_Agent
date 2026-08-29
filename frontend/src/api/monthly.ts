@@ -100,6 +100,10 @@ export function listEVMMetrics(periodId: number) {
   return apiFetch<EVMMetric[]>(`/api/monthly/evm/?period=${periodId}`)
 }
 
+export function listEVMMetricsForProject(projectId: number) {
+  return apiFetch<EVMMetric[]>(`/api/monthly/evm/?project=${projectId}`)
+}
+
 export interface ProjectEVMHistogramPoint {
   period: string
   pv: number
