@@ -77,24 +77,17 @@ def bulk_delete_response(queryset, request):
 
 
 def process_project_group_rows(project, rows, commit):
-    existing_codes = set(
-        CBSProjectGroup.objects.filter(project=project).values_list('code', flat=True)
-    )
+    existing = {pg.code: pg for pg in CBSProjectGroup.objects.filter(project=project)}
     seen_codes = set()
     created, updated = 0, 0
     created_codes, updated_codes = [], []
+    pending = {}
 
     for row in rows:
         code = str(row['Code']).strip()
         description = str(row['Description']).strip() if row['Description'] is not None else ''
-        is_new = code not in existing_codes and code not in seen_codes
+        is_new = code not in existing and code not in seen_codes
         seen_codes.add(code)
-
-        if commit:
-            obj, was_created = CBSProjectGroup.objects.update_or_create(
-                project=project, code=code, defaults={'description': description}
-            )
-            is_new = was_created
 
         if is_new:
             created += 1
@@ -102,6 +95,21 @@ def process_project_group_rows(project, rows, commit):
         else:
             updated += 1
             updated_codes.append(code)
+
+        if commit:
+            obj = existing.get(code) or pending.get(code)
+            if obj is None:
+                obj = CBSProjectGroup(project=project, code=code)
+            obj.description = description
+            pending[code] = obj
+
+    if commit:
+        to_create = [obj for obj in pending.values() if obj.pk is None]
+        to_update = [obj for obj in pending.values() if obj.pk is not None]
+        if to_create:
+            CBSProjectGroup.objects.bulk_create(to_create)
+        if to_update:
+            CBSProjectGroup.objects.bulk_update(to_update, ['description'])
 
     return {
         'created': created,
@@ -113,22 +121,24 @@ def process_project_group_rows(project, rows, commit):
 
 
 def process_control_account_rows(project, rows, commit):
-    existing = set(
-        CBSControlAccount.objects.filter(project_group__project=project)
-        .values_list('project_group__code', 'code')
-    )
+    project_groups = {pg.code: pg for pg in CBSProjectGroup.objects.filter(project=project)}
+    existing = {
+        (ca.project_group.code, ca.code): ca
+        for ca in CBSControlAccount.objects.filter(project_group__project=project).select_related('project_group')
+    }
     seen = set()
     created, updated = 0, 0
     created_codes, updated_codes = [], []
     errors = []
+    pending = {}
 
     for i, row in enumerate(rows, start=2):
         pg_code = str(row['CBS PG']).strip() if row['CBS PG'] is not None else ''
         code = str(row['Code']).strip()
         description = str(row['Description']).strip() if row['Description'] is not None else ''
-        try:
-            project_group = CBSProjectGroup.objects.get(project=project, code=pg_code)
-        except CBSProjectGroup.DoesNotExist:
+
+        project_group = project_groups.get(pg_code)
+        if project_group is None:
             errors.append(f'Row {i}: CBS Project Group "{pg_code}" not found in this project.')
             continue
 
@@ -136,18 +146,38 @@ def process_control_account_rows(project, rows, commit):
         is_new = key not in existing and key not in seen
         seen.add(key)
 
-        if commit:
-            obj, was_created = CBSControlAccount.objects.update_or_create(
-                project_group=project_group, code=code, defaults={'description': description}
-            )
-            is_new = was_created
-
         if is_new:
             created += 1
             created_codes.append(code)
         else:
             updated += 1
             updated_codes.append(code)
+
+        if commit:
+            obj = existing.get(key) or pending.get(key)
+            if obj is None:
+                obj = CBSControlAccount(project_group=project_group, code=code)
+            obj.description = description
+            pending[key] = obj
+
+    if commit:
+        to_create = [obj for obj in pending.values() if obj.pk is None]
+        to_update = [obj for obj in pending.values() if obj.pk is not None]
+        if to_create:
+            CBSControlAccount.objects.bulk_create(to_create)
+            # bulk_create bypasses post_save, so replicate the auto cost-activity
+            # WorkPackage that CBSControlAccount's signal would otherwise create.
+            WorkPackage.objects.bulk_create([
+                WorkPackage(
+                    control_account=ca,
+                    code=cost_activity_code(ca.code),
+                    name=f'{ca.description} (AC/ETC)',
+                    is_cost_activity=True,
+                )
+                for ca in to_create
+            ])
+        if to_update:
+            CBSControlAccount.objects.bulk_update(to_update, ['description'])
 
     return {
         'created': created,
@@ -160,14 +190,24 @@ def process_control_account_rows(project, rows, commit):
 
 
 def process_work_package_rows(project, rows, commit):
-    existing = set(
-        WorkPackage.objects.filter(control_account__project_group__project=project)
-        .values_list('control_account__code', 'code')
-    )
+    control_accounts_by_code = {}
+    ambiguous_ca_codes = set()
+    for ca in CBSControlAccount.objects.filter(project_group__project=project):
+        if ca.code in control_accounts_by_code:
+            ambiguous_ca_codes.add(ca.code)
+        else:
+            control_accounts_by_code[ca.code] = ca
+
+    existing = {
+        (wp.control_account_id, wp.code): wp
+        for wp in WorkPackage.objects.filter(control_account__project_group__project=project)
+    }
+
     seen = {}
     created, updated = 0, 0
     created_codes, updated_codes = [], []
     errors = []
+    pending = {}
 
     for i, row in enumerate(rows, start=2):
         ca_code = str(row['CBS CA']).strip() if row['CBS CA'] is not None else ''
@@ -182,37 +222,20 @@ def process_work_package_rows(project, rows, commit):
             continue
         seen[(ca_code, code)] = i
 
-        try:
-            control_account = CBSControlAccount.objects.get(
-                project_group__project=project, code=ca_code
-            )
-        except CBSControlAccount.DoesNotExist:
-            errors.append(f'Row {i}: CBS Control Account "{ca_code}" not found in this project.')
-            continue
-        except CBSControlAccount.MultipleObjectsReturned:
+        if ca_code in ambiguous_ca_codes:
             errors.append(f'Row {i}: CBS Control Account "{ca_code}" is ambiguous in this project.')
+            continue
+        control_account = control_accounts_by_code.get(ca_code)
+        if control_account is None:
+            errors.append(f'Row {i}: CBS Control Account "{ca_code}" not found in this project.')
             continue
 
         if code == cost_activity_code(ca_code):
             errors.append(f'Row {i}: CBS WP code "{code}" is reserved for the auto-generated cost activity.')
             continue
 
-        is_new = (ca_code, code) not in existing
-
-        if commit:
-            obj, was_created = WorkPackage.objects.update_or_create(
-                control_account=control_account,
-                code=code,
-                defaults={
-                    'name': name,
-                    'budget': parse_decimal(row['Budget']),
-                    'unit': str(row['Unit']).strip() if row['Unit'] is not None else '',
-                    'qty': parse_decimal(row['Qty']),
-                    'bl_start': parse_date(row['BL Start']),
-                    'bl_end': parse_date(row['BL End']),
-                },
-            )
-            is_new = was_created
+        key = (control_account.id, code)
+        is_new = key not in existing
 
         if is_new:
             created += 1
@@ -220,6 +243,28 @@ def process_work_package_rows(project, rows, commit):
         else:
             updated += 1
             updated_codes.append(code)
+
+        if commit:
+            obj = existing.get(key) or pending.get(key)
+            if obj is None:
+                obj = WorkPackage(control_account=control_account, code=code)
+            obj.name = name
+            obj.budget = parse_decimal(row['Budget'])
+            obj.unit = str(row['Unit']).strip() if row['Unit'] is not None else ''
+            obj.qty = parse_decimal(row['Qty'])
+            obj.bl_start = parse_date(row['BL Start'])
+            obj.bl_end = parse_date(row['BL End'])
+            pending[key] = obj
+
+    if commit:
+        to_create = [obj for obj in pending.values() if obj.pk is None]
+        to_update = [obj for obj in pending.values() if obj.pk is not None]
+        if to_create:
+            WorkPackage.objects.bulk_create(to_create)
+        if to_update:
+            WorkPackage.objects.bulk_update(
+                to_update, ['name', 'budget', 'unit', 'qty', 'bl_start', 'bl_end']
+            )
 
     return {
         'created': created,

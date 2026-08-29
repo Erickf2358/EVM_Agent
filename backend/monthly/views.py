@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from projects.models import Project
-from cbs.models import WorkPackage, MonthlyPV
+from cbs.models import CBSControlAccount, WorkPackage, MonthlyPV
 from cbs.excel import build_prefilled_template, read_rows
 
 from .models import Period, PeriodProgress, EVMMetric
@@ -130,13 +130,29 @@ class PeriodProgressViewSet(viewsets.ModelViewSet):
         return period, rows, None
 
     def _process_rows(self, period, rows, commit):
-        existing_wp_ids = set(
-            PeriodProgress.objects.filter(period=period).values_list('work_package_id', flat=True)
-        )
+        control_accounts_by_code = {}
+        ambiguous_ca_codes = set()
+        for ca in CBSControlAccount.objects.filter(project_group__project=period.project):
+            if ca.code in control_accounts_by_code:
+                ambiguous_ca_codes.add(ca.code)
+            else:
+                control_accounts_by_code[ca.code] = ca
+
+        work_packages_by_key = {
+            (wp.control_account_id, wp.code): wp
+            for wp in WorkPackage.objects.filter(control_account__project_group__project=period.project)
+        }
+
+        existing_progress = {
+            pp.work_package_id: pp
+            for pp in PeriodProgress.objects.filter(period=period)
+        }
+
         seen = {}
         created, updated = 0, 0
         created_codes, updated_codes = [], []
         errors = []
+        pending = {}
 
         for i, row in enumerate(rows, start=2):
             ca_code = str(row['CBS CA']).strip() if row['CBS CA'] is not None else ''
@@ -150,36 +166,18 @@ class PeriodProgressViewSet(viewsets.ModelViewSet):
                 continue
             seen[(ca_code, wp_code)] = i
 
-            try:
-                work_package = WorkPackage.objects.get(
-                    control_account__project_group__project=period.project,
-                    control_account__code=ca_code,
-                    code=wp_code,
-                )
-            except WorkPackage.DoesNotExist:
+            if ca_code in ambiguous_ca_codes:
+                errors.append(f'Row {i}: Work Package "{wp_code}" under CBS CA "{ca_code}" is ambiguous.')
+                continue
+            control_account = control_accounts_by_code.get(ca_code)
+            work_package = work_packages_by_key.get((control_account.id, wp_code)) if control_account else None
+            if work_package is None:
                 errors.append(
                     f'Row {i}: Work Package "{wp_code}" not found under CBS CA "{ca_code}" in this project.'
                 )
                 continue
-            except WorkPackage.MultipleObjectsReturned:
-                errors.append(f'Row {i}: Work Package "{wp_code}" under CBS CA "{ca_code}" is ambiguous.')
-                continue
 
-            is_new = work_package.id not in existing_wp_ids
-
-            if commit:
-                obj, was_created = PeriodProgress.objects.update_or_create(
-                    period=period,
-                    work_package=work_package,
-                    defaults={
-                        'start': parse_date(row['Actual Start']),
-                        'finish': parse_date(row['Actual Finish']),
-                        'actual_qty': parse_decimal(row['Actual Qty']),
-                        'ac': parse_decimal(row['AC']),
-                        'etc': parse_decimal(row['ETC']),
-                    },
-                )
-                is_new = was_created
+            is_new = work_package.id not in existing_progress
 
             if is_new:
                 created += 1
@@ -188,7 +186,26 @@ class PeriodProgressViewSet(viewsets.ModelViewSet):
                 updated += 1
                 updated_codes.append(wp_code)
 
+            if commit:
+                obj = existing_progress.get(work_package.id) or pending.get(work_package.id)
+                if obj is None:
+                    obj = PeriodProgress(period=period, work_package=work_package)
+                obj.start = parse_date(row['Actual Start'])
+                obj.finish = parse_date(row['Actual Finish'])
+                obj.actual_qty = parse_decimal(row['Actual Qty'])
+                obj.ac = parse_decimal(row['AC'])
+                obj.etc = parse_decimal(row['ETC'])
+                pending[work_package.id] = obj
+
         if commit:
+            to_create = [obj for obj in pending.values() if obj.pk is None]
+            to_update = [obj for obj in pending.values() if obj.pk is not None]
+            if to_create:
+                PeriodProgress.objects.bulk_create(to_create)
+            if to_update:
+                PeriodProgress.objects.bulk_update(
+                    to_update, ['start', 'finish', 'actual_qty', 'ac', 'etc']
+                )
             compute_evm_for_period(period)
 
         return {
