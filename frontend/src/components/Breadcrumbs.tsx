@@ -7,7 +7,7 @@ export interface Crumb {
 
 export default function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (
-    <nav className="text-sm text-gray-500 mb-4">
+    <nav className="text-sm text-gray-500 mb-4 overflow-x-auto whitespace-nowrap">
       {items.map((item, i) => (
         <span key={i}>
           {item.to ? (

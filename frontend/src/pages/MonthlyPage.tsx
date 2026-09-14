@@ -319,22 +319,22 @@ export default function MonthlyPage() {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+            <table className="w-full min-w-[1300px] text-sm">
               <thead className="bg-gray-100 text-left text-gray-600">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Project Group</th>
-                  <th className="px-4 py-3 font-medium">Description</th>
-                  <th className="px-4 py-3 font-medium text-right">BAC</th>
-                  <th className="px-4 py-3 font-medium text-right">EV</th>
-                  <th className="px-4 py-3 font-medium text-right">AC</th>
-                  <th className="px-4 py-3 font-medium text-right">PV (Cum.)</th>
-                  <th className="px-4 py-3 font-medium text-right">CV</th>
-                  <th className="px-4 py-3 font-medium text-right">SV</th>
-                  <th className="px-4 py-3 font-medium text-right">CPI</th>
-                  <th className="px-4 py-3 font-medium text-right">SPI</th>
-                  <th className="px-4 py-3 font-medium text-right">EAC</th>
-                  <th className="px-4 py-3 font-medium text-right">VAC</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Project Group</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium">Description</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">BAC</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">EV</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">AC</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">PV (Cum.)</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">CV</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">SV</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">CPI</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">SPI</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">EAC</th>
+                  <th className="whitespace-nowrap px-4 py-3 font-medium text-right">VAC</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -364,37 +364,37 @@ export default function MonthlyPage() {
                         onClick={() => toggleGroup(groupRow.group.id)}
                         className="cursor-pointer bg-gray-50/70 hover:bg-gray-100"
                       >
-                        <td className="px-4 py-3 font-medium text-gray-900">
+                        <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">
                           <span className="mr-2 inline-block w-3 text-gray-400">{isOpen ? '▾' : '▸'}</span>
                           {groupRow.group.code}
                         </td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{groupRow.group.description}</td>
-                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(bac)}</td>
-                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(groupRow.aggregate.ev)}</td>
-                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(groupRow.aggregate.ac)}</td>
-                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(groupRow.aggregate.pv_cumulative)}</td>
-                        <td className={`px-4 py-3 text-right font-medium ${groupRow.aggregate.cv < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                        <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">{groupRow.group.description}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium">{formatCurrency(bac)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium">{formatCurrency(groupRow.aggregate.ev)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium">{formatCurrency(groupRow.aggregate.ac)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium">{formatCurrency(groupRow.aggregate.pv_cumulative)}</td>
+                        <td className={`whitespace-nowrap px-4 py-3 text-right font-medium ${groupRow.aggregate.cv < 0 ? 'text-red-600' : 'text-green-700'}`}>
                           {formatCurrency(groupRow.aggregate.cv)}
                         </td>
-                        <td className={`px-4 py-3 text-right font-medium ${groupRow.aggregate.sv < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                        <td className={`whitespace-nowrap px-4 py-3 text-right font-medium ${groupRow.aggregate.sv < 0 ? 'text-red-600' : 'text-green-700'}`}>
                           {formatCurrency(groupRow.aggregate.sv)}
                         </td>
                         <td
-                          className={`px-4 py-3 text-right font-medium ${
+                          className={`whitespace-nowrap px-4 py-3 text-right font-medium ${
                             groupRow.aggregate.cpi !== null && groupRow.aggregate.cpi < 1 ? 'text-red-600' : 'text-green-700'
                           }`}
                         >
                           {groupRow.aggregate.cpi !== null ? groupRow.aggregate.cpi.toFixed(2) : '-'}
                         </td>
                         <td
-                          className={`px-4 py-3 text-right font-medium ${
+                          className={`whitespace-nowrap px-4 py-3 text-right font-medium ${
                             groupRow.aggregate.spi !== null && groupRow.aggregate.spi < 1 ? 'text-red-600' : 'text-green-700'
                           }`}
                         >
                           {groupRow.aggregate.spi !== null ? groupRow.aggregate.spi.toFixed(2) : '-'}
                         </td>
-                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(eac)}</td>
-                        <td className={`px-4 py-3 text-right font-medium ${vac < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium">{formatCurrency(eac)}</td>
+                        <td className={`whitespace-nowrap px-4 py-3 text-right font-medium ${vac < 0 ? 'text-red-600' : 'text-green-700'}`}>
                           {formatCurrency(vac)}
                         </td>
                       </tr>,
@@ -407,26 +407,26 @@ export default function MonthlyPage() {
                           const caVac = caBac - caEac
                           return (
                             <tr key={row.id} className="text-gray-600 hover:bg-gray-50">
-                              <td className="px-4 py-2 pl-10">{row.ca_code}</td>
-                              <td className="px-4 py-2">{row.ca_description}</td>
-                              <td className="px-4 py-2 text-right">{formatCurrency(caBac)}</td>
-                              <td className="px-4 py-2 text-right">{formatCurrency(row.ev)}</td>
-                              <td className="px-4 py-2 text-right">{formatCurrency(row.ac)}</td>
-                              <td className="px-4 py-2 text-right">{formatCurrency(row.pv_cumulative)}</td>
-                              <td className={`px-4 py-2 text-right ${row.cv < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                              <td className="whitespace-nowrap px-4 py-2 pl-10">{row.ca_code}</td>
+                              <td className="whitespace-nowrap px-4 py-2">{row.ca_description}</td>
+                              <td className="whitespace-nowrap px-4 py-2 text-right">{formatCurrency(caBac)}</td>
+                              <td className="whitespace-nowrap px-4 py-2 text-right">{formatCurrency(row.ev)}</td>
+                              <td className="whitespace-nowrap px-4 py-2 text-right">{formatCurrency(row.ac)}</td>
+                              <td className="whitespace-nowrap px-4 py-2 text-right">{formatCurrency(row.pv_cumulative)}</td>
+                              <td className={`whitespace-nowrap px-4 py-2 text-right ${row.cv < 0 ? 'text-red-600' : 'text-green-700'}`}>
                                 {formatCurrency(row.cv)}
                               </td>
-                              <td className={`px-4 py-2 text-right ${row.sv < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                              <td className={`whitespace-nowrap px-4 py-2 text-right ${row.sv < 0 ? 'text-red-600' : 'text-green-700'}`}>
                                 {formatCurrency(row.sv)}
                               </td>
-                              <td className={`px-4 py-2 text-right ${row.cpi !== null && row.cpi < 1 ? 'text-red-600' : 'text-green-700'}`}>
+                              <td className={`whitespace-nowrap px-4 py-2 text-right ${row.cpi !== null && row.cpi < 1 ? 'text-red-600' : 'text-green-700'}`}>
                                 {row.cpi !== null ? row.cpi.toFixed(2) : '-'}
                               </td>
-                              <td className={`px-4 py-2 text-right ${row.spi !== null && row.spi < 1 ? 'text-red-600' : 'text-green-700'}`}>
+                              <td className={`whitespace-nowrap px-4 py-2 text-right ${row.spi !== null && row.spi < 1 ? 'text-red-600' : 'text-green-700'}`}>
                                 {row.spi !== null ? row.spi.toFixed(2) : '-'}
                               </td>
-                              <td className="px-4 py-2 text-right">{formatCurrency(caEac)}</td>
-                              <td className={`px-4 py-2 text-right ${caVac < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                              <td className="whitespace-nowrap px-4 py-2 text-right">{formatCurrency(caEac)}</td>
+                              <td className={`whitespace-nowrap px-4 py-2 text-right ${caVac < 0 ? 'text-red-600' : 'text-green-700'}`}>
                                 {formatCurrency(caVac)}
                               </td>
                             </tr>

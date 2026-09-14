@@ -82,7 +82,7 @@ export default function ProjectsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">Projects</h1>
           <p className="text-sm text-gray-500">
@@ -153,14 +153,14 @@ export default function ProjectsPage() {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table className="w-full min-w-[700px] text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
-              <th className="px-4 py-3 font-medium">Project ID</th>
-              <th className="px-4 py-3 font-medium">Project Name</th>
-              <th className="px-4 py-3 font-medium">Project Type</th>
-              <th className="px-4 py-3 font-medium text-right">Budget (BAC)</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">Project ID</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">Project Name</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">Project Type</th>
+              <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Budget (BAC)</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -190,11 +190,11 @@ export default function ProjectsPage() {
               !error &&
               projects.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{p.code}</td>
-                  <td className="px-4 py-3">{p.name}</td>
-                  <td className="px-4 py-3">{PROJECT_TYPE_LABELS[p.project_type]}</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(p.budget)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{p.code}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{p.name}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{PROJECT_TYPE_LABELS[p.project_type]}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">{formatCurrency(p.budget)}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <Link to={`/projects/${p.id}`} className="text-blue-700 hover:underline">
                       Open CBS &rarr;
                     </Link>

@@ -142,14 +142,14 @@ export default function WorkPackagePage() {
     <div>
       <CBSTabs projectId={projectIdNum} project={project} />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">Work Packages</h1>
           <p className="text-sm text-gray-500">
             Every Work Package is linked to a CBS Control Account and contributes to its budget (BAC).
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {selectedIds.size > 0 && (
             <button
               onClick={handleBulkDelete}
@@ -286,8 +286,8 @@ export default function WorkPackagePage() {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table className="w-full min-w-[1000px] text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
               <th className="w-10 px-4 py-3">
@@ -298,14 +298,14 @@ export default function WorkPackagePage() {
                   aria-label="Select all"
                 />
               </th>
-              <th className="px-4 py-3 font-medium">CBS CA</th>
-              <th className="px-4 py-3 font-medium">CBS WP</th>
-              <th className="px-4 py-3 font-medium">WP Name</th>
-              <th className="px-4 py-3 font-medium text-right">Budget</th>
-              <th className="px-4 py-3 font-medium">Unit</th>
-              <th className="px-4 py-3 font-medium text-right">Qty</th>
-              <th className="px-4 py-3 font-medium">BL Start</th>
-              <th className="px-4 py-3 font-medium">BL End</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">CBS CA</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">CBS WP</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">WP Name</th>
+              <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Budget</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">Unit</th>
+              <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Qty</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">BL Start</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">BL End</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -343,15 +343,15 @@ export default function WorkPackagePage() {
                       aria-label={`Select ${wp.code}`}
                     />
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{wp.ca_code}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{wp.code}</td>
-                  <td className="px-4 py-3">{wp.name}</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(wp.budget)}</td>
-                  <td className="px-4 py-3">{wp.unit}</td>
-                  <td className="px-4 py-3 text-right">{wp.qty}</td>
-                  <td className="px-4 py-3">{wp.bl_start ?? ''}</td>
-                  <td className="px-4 py-3">{wp.bl_end ?? ''}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{wp.ca_code}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{wp.code}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{wp.name}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">{formatCurrency(wp.budget)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{wp.unit}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">{wp.qty}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{wp.bl_start ?? ''}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{wp.bl_end ?? ''}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => handleDelete(wp)}
                       disabled={deletingId === wp.id}

@@ -84,7 +84,7 @@ export default function HistogramPage() {
     <div>
       <CBSTabs projectId={projectIdNum} project={project} />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">Histogram</h1>
           <p className="text-sm text-gray-500">
@@ -139,21 +139,21 @@ export default function HistogramPage() {
       </div>
 
       {!loading && data.length > 0 && (
-        <div className="mt-6 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="mt-6 overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+          <table className="w-full min-w-[480px] text-sm">
             <thead className="bg-gray-100 text-left text-gray-600">
               <tr>
-                <th className="px-4 py-3 font-medium">Period</th>
-                <th className="px-4 py-3 font-medium text-right">PV</th>
-                <th className="px-4 py-3 font-medium text-right">PV Cumulative</th>
+                <th className="whitespace-nowrap px-4 py-3 font-medium">Period</th>
+                <th className="whitespace-nowrap px-4 py-3 font-medium text-right">PV</th>
+                <th className="whitespace-nowrap px-4 py-3 font-medium text-right">PV Cumulative</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {data.map((row) => (
                 <tr key={row.period} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">{formatPeriod(row.period)}</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(row.pv)}</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(row.pv_cumulative)}</td>
+                  <td className="whitespace-nowrap px-4 py-3">{formatPeriod(row.period)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right">{formatCurrency(row.pv)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right">{formatCurrency(row.pv_cumulative)}</td>
                 </tr>
               ))}
             </tbody>
@@ -193,8 +193,8 @@ function PVChart({ data }: { data: PVRow[] }) {
   const rightTicks = Array.from({ length: yTicks + 1 }, (_, i) => (maxCumulative / yTicks) * i)
 
   return (
-    <div>
-      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="w-full">
+    <div className="overflow-x-auto">
+      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="w-full min-w-[700px]">
         {/* Left Y axis (PV) gridlines + labels */}
         {leftTicks.map((tick) => {
           const y = PADDING.top + yScaleLeft(tick)

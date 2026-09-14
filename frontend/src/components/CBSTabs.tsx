@@ -9,7 +9,7 @@ export default function CBSTabs({ projectId, project }: { projectId: number; pro
   const isHistogram = pathname.endsWith('/histogram')
 
   const tabClass = (active: boolean) =>
-    `px-4 py-2 text-sm font-medium border-b-2 ${
+    `whitespace-nowrap shrink-0 px-4 py-2 text-sm font-medium border-b-2 ${
       active ? 'border-blue-700 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'
     }`
 
@@ -23,7 +23,7 @@ export default function CBSTabs({ projectId, project }: { projectId: number; pro
           { label: 'CBS' },
         ]}
       />
-      <div className="border-b border-gray-200 flex gap-2">
+      <div className="border-b border-gray-200 flex gap-2 overflow-x-auto">
         <Link to={`/projects/${projectId}`} className={tabClass(!isCA && !isWP && !isHistogram)}>
           CBS Project Group
         </Link>

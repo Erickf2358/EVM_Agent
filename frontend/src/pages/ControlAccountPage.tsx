@@ -133,14 +133,14 @@ export default function ControlAccountPage() {
     <div>
       <CBSTabs projectId={projectIdNum} project={project} />
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">CBS Control Account</h1>
           <p className="text-sm text-gray-500">
             Every Control Account is linked to a CBS Project Group and rolls up budget from its Work Packages.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           {selectedIds.size > 0 && (
             <button
               onClick={handleBulkDelete}
@@ -229,8 +229,8 @@ export default function ControlAccountPage() {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
               <th className="w-10 px-4 py-3">
@@ -241,10 +241,10 @@ export default function ControlAccountPage() {
                   aria-label="Select all"
                 />
               </th>
-              <th className="px-4 py-3 font-medium">CBS PG</th>
-              <th className="px-4 py-3 font-medium">CBS CA</th>
-              <th className="px-4 py-3 font-medium">Description</th>
-              <th className="px-4 py-3 font-medium text-right">Budget (BAC)</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">CBS PG</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">CBS CA</th>
+              <th className="px-4 py-3 font-medium whitespace-nowrap">Description</th>
+              <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Budget (BAC)</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -282,11 +282,11 @@ export default function ControlAccountPage() {
                       aria-label={`Select ${ca.code}`}
                     />
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{ca.project_group_code}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{ca.code}</td>
-                  <td className="px-4 py-3">{ca.description}</td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(ca.budget)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{ca.project_group_code}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{ca.code}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">{ca.description}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">{formatCurrency(ca.budget)}</td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => handleDelete(ca)}
                       disabled={deletingId === ca.id}
