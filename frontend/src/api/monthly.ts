@@ -111,6 +111,8 @@ export interface ProjectEVMHistogramPoint {
   ac: number
 }
 
-export function getProjectEVMHistogram(projectId: number) {
-  return apiFetch<ProjectEVMHistogramPoint[]>(`/api/monthly/evm/project-histogram/?project=${projectId}`)
+export function getProjectEVMHistogram(projectId: number, controlAccountId?: number) {
+  const params = new URLSearchParams({ project: String(projectId) })
+  if (controlAccountId !== undefined) params.set('control_account', String(controlAccountId))
+  return apiFetch<ProjectEVMHistogramPoint[]>(`/api/monthly/evm/project-histogram/?${params}`)
 }
