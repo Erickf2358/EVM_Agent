@@ -6,6 +6,7 @@ import ControlAccountPage from './pages/ControlAccountPage'
 import WorkPackagePage from './pages/WorkPackagePage'
 import HistogramPage from './pages/HistogramPage'
 import MonthlyPage from './pages/MonthlyPage'
+import EVHistogramPage from './pages/EVHistogramPage'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/projects/:projectId/work-packages" element={<WorkPackagePage />} />
           <Route path="/projects/:projectId/histogram" element={<HistogramPage />} />
           <Route path="/projects/:projectId/monthly" element={<MonthlyPage />} />
+          <Route path="/projects/:projectId/evm-histogram" element={<EVHistogramPage />} />
         </Routes>
       </main>
     </div>

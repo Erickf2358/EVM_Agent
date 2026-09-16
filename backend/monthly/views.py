@@ -280,6 +280,12 @@ class EVMMetricViewSet(viewsets.ReadOnlyModelViewSet):
         totals: dict[tuple[int, int], dict] = {}
 
         pv_rows = MonthlyPV.objects.filter(control_account__project_group__project=project)
+
+        control_account_id = self.request.query_params.get('control_account')
+        if control_account_id:
+            evm_rows = evm_rows.filter(control_account_id=control_account_id)
+            pv_rows = pv_rows.filter(control_account_id=control_account_id)
+
         for row in pv_rows:
             key = (row.period.year, row.period.month)
             label = f'{row.period.year}-{row.period.month:02d}'

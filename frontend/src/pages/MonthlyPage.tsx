@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getProject, type Project } from '../api/projects'
 import { listControlAccounts, listProjectGroups, type CBSControlAccount, type CBSProjectGroup } from '../api/cbs'
@@ -444,7 +444,15 @@ export default function MonthlyPage() {
 
       {evmHistogram.length > 0 && (
         <div className="mb-8 mt-10 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-lg font-semibold">PV vs EV vs AC per Period</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">PV vs EV vs AC per Period</h2>
+            <Link
+              to={`/projects/${projectIdNum}/evm-histogram`}
+              className="text-sm font-medium text-blue-700 hover:underline"
+            >
+              Open full EVM Histogram &rarr;
+            </Link>
+          </div>
           <p className="mb-3 text-sm text-gray-500">
             Covers the whole project duration (baseline PV is shown even for periods with no progress loaded yet).
           </p>
