@@ -127,7 +127,8 @@ export default function ProjectDetailPage() {
         <div>
           <h1 className="text-2xl font-bold">CBS Project Group</h1>
           <p className="text-sm text-gray-500">
-            Project Groups roll up budget from their Control Accounts.
+            Project Groups roll up budget from their Control Accounts. The Excel template is pre-filled with this
+            project's existing groups — edit a row to update it, or add rows at the bottom to create new ones.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -150,7 +151,7 @@ export default function ProjectDetailPage() {
       </div>
 
       <ExcelImportExport
-        onDownloadTemplate={downloadProjectGroupTemplate}
+        onDownloadTemplate={() => downloadProjectGroupTemplate(projectIdNum)}
         onPreview={(file) => previewProjectGroupImport(projectIdNum, file)}
         onImport={(file) => importProjectGroups(projectIdNum, file)}
         onImported={refresh}

@@ -101,8 +101,8 @@ export function bulkDeleteControlAccounts(ids: number[]) {
   })
 }
 
-export function downloadProjectGroupTemplate() {
-  return downloadFile('/api/cbs/project-groups/template/', 'CBS_Project_Group_template.xlsx')
+export function downloadProjectGroupTemplate(projectId: number) {
+  return downloadFile(`/api/cbs/project-groups/template/?project=${projectId}`, 'CBS_Project_Group_template.xlsx')
 }
 
 export function importProjectGroups(projectId: number, file: File) {
@@ -162,8 +162,8 @@ export function bulkDeleteWorkPackages(ids: number[]) {
   })
 }
 
-export function downloadWorkPackageTemplate() {
-  return downloadFile('/api/cbs/work-packages/template/', 'Work_Packages_template.xlsx')
+export function downloadWorkPackageTemplate(projectId: number) {
+  return downloadFile(`/api/cbs/work-packages/template/?project=${projectId}`, 'Work_Packages_template.xlsx')
 }
 
 export function importWorkPackages(projectId: number, file: File) {
@@ -209,8 +209,8 @@ export function getProjectHistogram(projectId: number) {
   return apiFetch<ProjectPV[]>(`/api/cbs/control-accounts/project-histogram/?project=${projectId}`)
 }
 
-export function downloadControlAccountTemplate() {
-  return downloadFile('/api/cbs/control-accounts/template/', 'CBS_Control_Account_template.xlsx')
+export function downloadControlAccountTemplate(projectId: number) {
+  return downloadFile(`/api/cbs/control-accounts/template/?project=${projectId}`, 'CBS_Control_Account_template.xlsx')
 }
 
 export function importControlAccounts(projectId: number, file: File) {

@@ -137,7 +137,9 @@ export default function ControlAccountPage() {
         <div>
           <h1 className="text-2xl font-bold">CBS Control Account</h1>
           <p className="text-sm text-gray-500">
-            Every Control Account is linked to a CBS Project Group and rolls up budget from its Work Packages.
+            Every Control Account is linked to a CBS Project Group and rolls up budget from its Work Packages. The
+            Excel template is pre-filled with this project's existing accounts — edit a row to update it, or add
+            rows at the bottom to create new ones.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -162,7 +164,7 @@ export default function ControlAccountPage() {
       </div>
 
       <ExcelImportExport
-        onDownloadTemplate={downloadControlAccountTemplate}
+        onDownloadTemplate={() => downloadControlAccountTemplate(projectIdNum)}
         onPreview={(file) => previewControlAccountImport(projectIdNum, file)}
         onImport={(file) => importControlAccounts(projectIdNum, file)}
         onImported={refresh}

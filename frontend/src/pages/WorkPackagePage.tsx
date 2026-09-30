@@ -146,7 +146,9 @@ export default function WorkPackagePage() {
         <div>
           <h1 className="text-2xl font-bold">Work Packages</h1>
           <p className="text-sm text-gray-500">
-            Every Work Package is linked to a CBS Control Account and contributes to its budget (BAC).
+            Every Work Package is linked to a CBS Control Account and contributes to its budget (BAC). The Excel
+            template is pre-filled with this project's existing work packages (auto-generated cost activities are
+            not included) — edit a row to update it, or add rows at the bottom to create new ones.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -171,7 +173,7 @@ export default function WorkPackagePage() {
       </div>
 
       <ExcelImportExport
-        onDownloadTemplate={downloadWorkPackageTemplate}
+        onDownloadTemplate={() => downloadWorkPackageTemplate(projectIdNum)}
         onPreview={(file) => previewWorkPackageImport(projectIdNum, file)}
         onImport={(file) => importWorkPackages(projectIdNum, file)}
         onImported={refresh}

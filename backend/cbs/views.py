@@ -8,12 +8,14 @@ from rest_framework.response import Response
 from projects.models import Project
 from .models import CBSProjectGroup, CBSControlAccount, WorkPackage, MonthlyPV, cost_activity_code
 from .serializers import CBSProjectGroupSerializer, CBSControlAccountSerializer, WorkPackageSerializer, MonthlyPVSerializer
-from .excel import build_template, read_rows
+from .excel import build_prefilled_template, read_rows
 from .pmb import compute_pmb_for_project
 
 PROJECT_GROUP_HEADERS = ['Code', 'Description']
 CONTROL_ACCOUNT_HEADERS = ['CBS PG', 'Code', 'Description']
 WORK_PACKAGE_HEADERS = ['CBS CA', 'CBS WP', 'WP Name', 'Budget', 'Unit', 'Qty', 'BL Start', 'BL End']
+
+BLANK_TEMPLATE_ROWS = 5
 
 
 def parse_decimal(value, default=Decimal('0')):
@@ -43,6 +45,25 @@ def parse_date(value):
         except ValueError:
             continue
     return None
+
+
+def project_from_query(request):
+    """Resolve the ?project= query parameter.
+
+    Returns (project, None) on success, or (None, error_response).
+    """
+    project_id = request.query_params.get('project')
+    if not project_id:
+        return None, Response({'detail': 'project is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        return Project.objects.get(pk=project_id), None
+    except (Project.DoesNotExist, ValueError):
+        return None, Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+def with_blank_rows(rows):
+    """Append empty rows so users can hand-write new entries without inserting rows."""
+    return [*rows, *([[]] * BLANK_TEMPLATE_ROWS)]
 
 
 def load_project_and_rows(request, expected_headers):
@@ -288,7 +309,17 @@ class CBSProjectGroupViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='template')
     def template(self, request):
-        return build_template('CBS_Project_Group', PROJECT_GROUP_HEADERS)
+        project, error = project_from_query(request)
+        if error:
+            return error
+
+        rows = [
+            [pg.code, pg.description]
+            for pg in CBSProjectGroup.objects.filter(project=project)
+        ]
+        return build_prefilled_template(
+            'CBS_Project_Group', PROJECT_GROUP_HEADERS, with_blank_rows(rows)
+        )
 
     @action(detail=False, methods=['post'], url_path='import')
     def import_excel(self, request):
@@ -324,7 +355,19 @@ class CBSControlAccountViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='template')
     def template(self, request):
-        return build_template('CBS_Control_Account', CONTROL_ACCOUNT_HEADERS)
+        project, error = project_from_query(request)
+        if error:
+            return error
+
+        rows = [
+            [ca.project_group.code, ca.code, ca.description]
+            for ca in CBSControlAccount.objects.filter(
+                project_group__project=project
+            ).select_related('project_group').order_by('project_group__code', 'code')
+        ]
+        return build_prefilled_template(
+            'CBS_Control_Account', CONTROL_ACCOUNT_HEADERS, with_blank_rows(rows)
+        )
 
     @action(detail=False, methods=['post'], url_path='recompute-pmb')
     def recompute_pmb(self, request):
@@ -347,13 +390,9 @@ class CBSControlAccountViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='project-histogram')
     def project_histogram(self, request):
-        project_id = request.query_params.get('project')
-        if not project_id:
-            return Response({'detail': 'project is required.'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            project = Project.objects.get(pk=project_id)
-        except Project.DoesNotExist:
-            return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+        project, error = project_from_query(request)
+        if error:
+            return error
 
         rows = MonthlyPV.objects.filter(control_account__project_group__project=project).order_by('period')
         totals = {}
@@ -404,7 +443,28 @@ class WorkPackageViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='template')
     def template(self, request):
-        return build_template('Work_Packages', WORK_PACKAGE_HEADERS)
+        project, error = project_from_query(request)
+        if error:
+            return error
+
+        rows = [
+            [
+                wp.control_account.code,
+                wp.code,
+                wp.name,
+                wp.budget,
+                wp.unit,
+                wp.qty,
+                wp.bl_start.isoformat() if wp.bl_start else '',
+                wp.bl_end.isoformat() if wp.bl_end else '',
+            ]
+            for wp in WorkPackage.objects.filter(
+                control_account__project_group__project=project, is_cost_activity=False
+            ).select_related('control_account').order_by('control_account__code', 'code')
+        ]
+        return build_prefilled_template(
+            'Work_Packages', WORK_PACKAGE_HEADERS, with_blank_rows(rows)
+        )
 
     @action(detail=False, methods=['post'], url_path='import')
     def import_excel(self, request):
