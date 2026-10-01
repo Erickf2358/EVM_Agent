@@ -72,23 +72,33 @@ class PeriodProgressViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='template')
     def template(self, request):
-        project_id = request.query_params.get('project')
-        if not project_id:
-            return Response({'detail': 'project is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        period_id = request.query_params.get('period')
+        if not period_id:
+            return Response({'detail': 'period is required.'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            project = Project.objects.get(pk=project_id)
-        except Project.DoesNotExist:
-            return Response({'detail': 'Project not found.'}, status=status.HTTP_404_NOT_FOUND)
+            period = Period.objects.get(pk=period_id)
+        except (Period.DoesNotExist, ValueError):
+            return Response({'detail': 'Period not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+        project = period.project
+
+        # Cost activities are included on purpose: they are where AC/ETC is booked.
         work_packages = WorkPackage.objects.filter(
             control_account__project_group__project=project
         ).select_related('control_account').order_by('control_account__code', 'code')
 
+        # Cumulative snapshot as of the selected period: the newest progress dated on or
+        # before it. PeriodProgress holds cumulative-to-date values, so carrying the
+        # latest figures in the project into an earlier period would report progress that
+        # had not happened yet. Including the selected period itself keeps re-downloading
+        # an already-filled period lossless.
+        cutoff = (period.year, period.month)
         latest_progress = {}
         for progress in PeriodProgress.objects.filter(
             period__project=project
         ).select_related('period').order_by('period__year', 'period__month'):
-            latest_progress[progress.work_package_id] = progress
+            if (progress.period.year, progress.period.month) <= cutoff:
+                latest_progress[progress.work_package_id] = progress
 
         rows = []
         for wp in work_packages:

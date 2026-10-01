@@ -85,6 +85,26 @@ export default function MonthlyPage() {
 
   const historicalMatrix = useMemo(() => buildHistoricalMatrix(allEvmMetrics), [allEvmMetrics])
 
+  const selectedPeriodLabel = useMemo(
+    () => (periodId === '' ? null : (periods.find((p) => p.id === periodId)?.label ?? null)),
+    [periodId, periods],
+  )
+
+  // Period labels are zero-padded YYYY-MM, so string comparison is chronological.
+  const visibleEvmHistogram = useMemo(
+    () => (selectedPeriodLabel === null
+      ? evmHistogram
+      : evmHistogram.filter((p) => p.period <= selectedPeriodLabel)),
+    [evmHistogram, selectedPeriodLabel],
+  )
+
+  const visibleHistoricalMatrix = useMemo(
+    () => (selectedPeriodLabel === null
+      ? historicalMatrix
+      : historicalMatrix.filter((r) => r.period_label <= selectedPeriodLabel)),
+    [historicalMatrix, selectedPeriodLabel],
+  )
+
   function refresh() {
     setLoading(true)
     Promise.all([
@@ -204,8 +224,8 @@ export default function MonthlyPage() {
         <h1 className="text-2xl font-bold">Monthly Updates</h1>
         <p className="text-sm text-gray-500">
           Download the template (pre-filled with baseline CBS CA, CBS WP, Activity, Budget and BL dates from
-          this project's Work Packages), fill in Actual Start, Actual Finish and Actual Qty per activity, then
-          upload it for the selected period.
+          this project's Work Packages, plus the actuals reported through the selected period), fill in Actual
+          Start, Actual Finish and Actual Qty per activity, then upload it for the selected period.
         </p>
       </div>
 
@@ -305,7 +325,7 @@ export default function MonthlyPage() {
       {periodId !== '' && (
         <>
           <ExcelImportExport
-            onDownloadTemplate={() => downloadPeriodProgressTemplate(projectIdNum)}
+            onDownloadTemplate={() => downloadPeriodProgressTemplate(periodId)}
             onPreview={(file) => previewPeriodProgressImport(periodId, file)}
             onImport={(file) => importPeriodProgress(periodId, file)}
             onImported={refreshProgress}
@@ -442,14 +462,16 @@ export default function MonthlyPage() {
         </>
       )}
 
-      {evmHistogram.length > 0 && (
+      {visibleEvmHistogram.length > 0 && (
         <div className="mb-8 mt-10 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-lg font-semibold">PV vs EV vs AC per Period</h2>
           <p className="mb-3 text-sm text-gray-500">
-            Covers the whole project duration (baseline PV is shown even for periods with no progress loaded yet).
+            {selectedPeriodLabel === null
+              ? 'Covers the whole project duration (baseline PV is shown even for periods with no progress loaded yet).'
+              : `Through ${selectedPeriodLabel} (baseline PV is shown even for periods with no progress loaded yet).`}
           </p>
           <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={evmHistogram} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+            <BarChart data={visibleEvmHistogram} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" />
               <YAxis tickFormatter={(v) => formatCurrency(v)} width={100} />
@@ -466,7 +488,8 @@ export default function MonthlyPage() {
       <div className="mt-2 mb-3">
         <h2 className="text-lg font-semibold">Historical EVM Indicators</h2>
         <p className="text-sm text-gray-500">
-          Cumulative PV, EV, AC and cost/schedule indices for the whole project, for every period with progress loaded.
+          Cumulative PV, EV, AC and cost/schedule indices for the whole project, for every period with progress
+          loaded{selectedPeriodLabel === null ? '.' : ` up to ${selectedPeriodLabel}.`}
         </p>
       </div>
 
@@ -492,7 +515,7 @@ export default function MonthlyPage() {
                 </td>
               </tr>
             )}
-            {historicalMatrix.map((row) => (
+            {visibleHistoricalMatrix.map((row) => (
               <tr key={row.period_label} className="hover:bg-gray-50">
                 <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-900">{row.period_label}</td>
                 <td className="whitespace-nowrap px-3 py-3 text-right">{formatCurrency(row.whole.pv_cumulative)}</td>

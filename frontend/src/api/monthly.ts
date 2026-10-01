@@ -60,8 +60,8 @@ export function listPeriodProgress(periodId: number) {
   return apiFetch<PeriodProgress[]>(`/api/monthly/progress/?period=${periodId}`)
 }
 
-export function downloadPeriodProgressTemplate(projectId: number) {
-  return downloadFile(`/api/monthly/progress/template/?project=${projectId}`, 'Period_Progress_template.xlsx')
+export function downloadPeriodProgressTemplate(periodId: number) {
+  return downloadFile(`/api/monthly/progress/template/?period=${periodId}`, 'Period_Progress_template.xlsx')
 }
 
 export function importPeriodProgress(periodId: number, file: File) {
